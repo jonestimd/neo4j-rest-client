@@ -59,4 +59,9 @@ public class Node implements GraphElement {
         }
         return new Node(id, labels, properties);
     }
+
+    @Override
+    public String toString() {
+        return "Node(id=" + id + ",labels=" + labels + ",properties=" + properties + ")";
+    }
 }

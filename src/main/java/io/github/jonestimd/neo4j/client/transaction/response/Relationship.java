@@ -80,4 +80,9 @@ public class Relationship implements GraphElement {
         }
         return new Relationship(id, type, startId, endId, properties);
     }
+
+    @Override
+    public String toString() {
+        return "Relationship(id=" + id + ",type=" + type + ",startId=" + startId + ",endId=" + endId + ",properties=" + properties + ")";
+    }
 }
