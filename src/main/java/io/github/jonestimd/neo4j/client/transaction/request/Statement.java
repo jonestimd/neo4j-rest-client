@@ -36,7 +36,7 @@ public class Statement implements ToJson {
     }
 
     public Map<String, ?> getParameters() {
-        return Collections.unmodifiableMap(parameters);
+        return parameters == null ? null : Collections.unmodifiableMap(parameters);
     }
 
     public boolean isIncludeStats() {

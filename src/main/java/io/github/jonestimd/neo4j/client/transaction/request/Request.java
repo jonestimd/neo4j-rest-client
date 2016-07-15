@@ -26,9 +26,9 @@ public class Request implements ToJson {
         return Collections.unmodifiableList(statements);
     }
 
-    public String toJson() throws IOException {
+    public String toJson(JsonFactory jsonFactory) throws IOException {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        JsonGenerator generator = new JsonFactory().createGenerator(stream);
+        JsonGenerator generator = jsonFactory.createGenerator(stream);
         toJson(generator);
         generator.close();
         return stream.toString("UTF-8");

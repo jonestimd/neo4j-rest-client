@@ -47,7 +47,7 @@ public class Transaction {
     }
 
     private Response postRequest(Request request, String uri) throws IOException {
-        try (HttpResponse httpResponse = httpDriver.post(uri, request.toJson())) {
+        try (HttpResponse httpResponse = httpDriver.post(uri, request.toJson(jsonFactory))) {
             updateLocation(httpResponse.getHeader("Location"));
             return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
         }
