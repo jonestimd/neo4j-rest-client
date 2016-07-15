@@ -10,12 +10,20 @@ import io.github.jonestimd.neo4j.client.transaction.request.Statement;
 import io.github.jonestimd.neo4j.client.transaction.response.Response;
 
 public class Transaction {
+    private static final JsonFactory DEFAULT_JSON_FACTORY = new JsonFactory();
+
+    private final JsonFactory jsonFactory;
     private final HttpDriver httpDriver;
     private final String baseUrl;
     private String location;
     private boolean complete = false;
 
     public Transaction(HttpDriver httpDriver, String baseUrl) {
+        this(httpDriver, baseUrl, DEFAULT_JSON_FACTORY);
+    }
+
+    public Transaction(HttpDriver httpDriver, String baseUrl, JsonFactory jsonFactory) {
+        this.jsonFactory = jsonFactory;
         this.httpDriver = httpDriver;
         this.baseUrl = baseUrl;
     }
@@ -34,14 +42,15 @@ public class Transaction {
         return response;
     }
 
-    private String getUri() {
+    protected String getUri() {
         return location == null ? baseUrl : location;
     }
 
     private Response postRequest(Request request, String uri) throws IOException {
-        HttpResponse httpResponse = httpDriver.post(uri, request.toJson());
-        updateLocation(httpResponse.getHeader("Location"));
-        return new Response(new JsonFactory().createParser(httpResponse.getEntityContent()));
+        try (HttpResponse httpResponse = httpDriver.post(uri, request.toJson())) {
+            updateLocation(httpResponse.getHeader("Location"));
+            return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
+        }
     }
 
     private void updateLocation(String location) {
@@ -54,9 +63,10 @@ public class Transaction {
     public Response rollback() throws IOException {
         if (complete) throw new IllegalStateException("Transaction already complete");
         if (location != null) {
-            HttpResponse httpResponse = httpDriver.delete(location);
-            this.complete = true;
-            return new Response(new JsonFactory().createParser(httpResponse.getEntityContent()));
+            try (HttpResponse httpResponse = httpDriver.delete(location)) {
+                this.complete = true;
+                return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
+            }
         }
         return Response.EMPTY;
     }
