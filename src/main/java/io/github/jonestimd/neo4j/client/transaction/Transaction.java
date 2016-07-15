@@ -64,8 +64,9 @@ public class Transaction {
         if (complete) throw new IllegalStateException("Transaction already complete");
         if (location != null) {
             try (HttpResponse httpResponse = httpDriver.delete(location)) {
+                Response response = new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
                 this.complete = true;
-                return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
+                return response;
             }
         }
         return Response.EMPTY;
