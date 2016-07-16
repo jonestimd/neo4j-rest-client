@@ -1,6 +1,8 @@
 package io.github.jonestimd.neo4j.client.transaction;
 
 import java.io.IOException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import io.github.jonestimd.neo4j.client.http.HttpDriver;
@@ -8,24 +10,36 @@ import io.github.jonestimd.neo4j.client.http.HttpResponse;
 import io.github.jonestimd.neo4j.client.transaction.request.Request;
 import io.github.jonestimd.neo4j.client.transaction.request.Statement;
 import io.github.jonestimd.neo4j.client.transaction.response.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Transaction {
     private static final JsonFactory DEFAULT_JSON_FACTORY = new JsonFactory();
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private final JsonFactory jsonFactory;
     private final HttpDriver httpDriver;
     private final String baseUrl;
-    private String location;
-    private boolean complete = false;
+    private final Timer timer;
+    private final long keepAliveMs;
+    private volatile String location;
+    private volatile boolean complete = false;
+    private volatile long lastRequestTime = -1L;
 
     public Transaction(HttpDriver httpDriver, String baseUrl) {
-        this(httpDriver, baseUrl, DEFAULT_JSON_FACTORY);
+        this(httpDriver, baseUrl, null, 0L);
     }
 
-    public Transaction(HttpDriver httpDriver, String baseUrl, JsonFactory jsonFactory) {
+    public Transaction(HttpDriver httpDriver, String baseUrl, Timer timer, long keepAliveMs) {
+        this(httpDriver, baseUrl, DEFAULT_JSON_FACTORY, timer, keepAliveMs);
+    }
+
+    public Transaction(HttpDriver httpDriver, String baseUrl, JsonFactory jsonFactory, Timer timer, long keepAliveMs) {
         this.jsonFactory = jsonFactory;
         this.httpDriver = httpDriver;
         this.baseUrl = baseUrl;
+        this.timer = timer;
+        this.keepAliveMs = keepAliveMs;
     }
 
     public Response execute(Statement... statements) throws IOException {
@@ -47,6 +61,7 @@ public class Transaction {
     }
 
     private Response postRequest(Request request, String uri) throws IOException {
+        lastRequestTime = System.currentTimeMillis();
         try (HttpResponse httpResponse = httpDriver.post(uri, request.toJson(jsonFactory))) {
             updateLocation(httpResponse.getHeader("Location"));
             return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
@@ -54,9 +69,11 @@ public class Transaction {
     }
 
     private void updateLocation(String location) {
-        if (location != null) {
-            // TODO start keep alive timer
+        if (location != null && ! location.equals(this.location)) {
             this.location = location;
+            if (timer != null) {
+                timer.schedule(new PingTask(), keepAliveMs);
+            }
         }
     }
 
@@ -64,11 +81,28 @@ public class Transaction {
         if (complete) throw new IllegalStateException("Transaction already complete");
         if (location != null) {
             try (HttpResponse httpResponse = httpDriver.delete(location)) {
-                Response response = new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
                 this.complete = true;
-                return response;
+                return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
             }
         }
         return Response.EMPTY;
+    }
+
+    private class PingTask extends TimerTask {
+        @Override
+        public void run() {
+            if (!complete) {
+                long now = System.currentTimeMillis();
+                if (now - lastRequestTime >= keepAliveMs) {
+                    try {
+                        lastRequestTime = System.currentTimeMillis();
+                        postRequest(new Request(), location).next();
+                    } catch (Throwable ex) {
+                        logger.warn("error pinging transaction URL " + location, ex);
+                    }
+                }
+                timer.schedule(new PingTask(), lastRequestTime + keepAliveMs - now);
+            }
+        }
     }
 }
