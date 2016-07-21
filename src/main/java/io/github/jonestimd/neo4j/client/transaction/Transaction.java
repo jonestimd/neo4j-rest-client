@@ -42,6 +42,10 @@ public class Transaction {
         this.keepAliveMs = keepAliveMs;
     }
 
+    public boolean isComplete() {
+        return complete;
+    }
+
     public Response execute(Statement... statements) throws IOException {
         if (complete) throw new IllegalStateException("Transaction already complete");
         if (statements.length > 0) return postRequest(new Request(statements), getUri());
