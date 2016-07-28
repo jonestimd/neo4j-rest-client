@@ -8,6 +8,10 @@ import java.util.List;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class represents metadata for a column value in a row of a query result.  For a node or relationship column, a list
+ * of one {@code ColumnMeta} is returned.  For a path column, the list contains one {@code ColumnMeta} for each path element.
+ */
 public class ColumnMeta {
     public enum MetaType { NODE, RELATIONSHIP }
 
@@ -25,10 +29,16 @@ public class ColumnMeta {
         this.deleted = deleted;
     }
 
+    /**
+     * Get the graph ID of the node or relationship.
+     */
     public Long getId() {
         return id;
     }
 
+    /**
+     * Get the graph element type.
+     */
     public MetaType getType() {
         return type;
     }
@@ -37,6 +47,12 @@ public class ColumnMeta {
         return deleted;
     }
 
+    /**
+     * Read the next column metadata from a JSON stream.
+     * @param parser the JSON parser for the stream
+     * @return the metadata for the column
+     * @throws IOException
+     */
     public static List<ColumnMeta> read(JsonParser parser) throws IOException {
         switch (parser.nextToken()) {
             case START_OBJECT: return Collections.singletonList(parseMeta(parser));

@@ -1,20 +1,29 @@
 package io.github.jonestimd.neo4j.client.transaction;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import io.github.jonestimd.neo4j.client.http.HttpDriver;
 import io.github.jonestimd.neo4j.client.http.HttpResponse;
-import io.github.jonestimd.neo4j.client.transaction.request.Request;
 import io.github.jonestimd.neo4j.client.transaction.request.Statement;
 import io.github.jonestimd.neo4j.client.transaction.response.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class is used to execute Cypher queries in a transaction.  No HTTP requests are made until the
+ * {@link #execute(Statement...) execute()} or {@link #commit(Statement...) commit()} method is called with at least one
+ * {@link Statement}.  Once {@link #execute(Statement...) execute()} is called with a {@link Statement}, a timer task is
+ * scheduled to ping the transaction URL periodically to keep the transaction alive until it is complete.  This
+ * timer task is disabled if the transaction is created with a {@code null} {@link Timer}.
+ */
 public class Transaction {
-    private static final JsonFactory DEFAULT_JSON_FACTORY = new JsonFactory();
+    public static final JsonFactory DEFAULT_JSON_FACTORY = new JsonFactory();
+    public static final String TRANSACTION_COMPLETE_ERROR = "Transaction already complete";
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final JsonFactory jsonFactory;
@@ -26,36 +35,73 @@ public class Transaction {
     private volatile boolean complete = false;
     private volatile long lastRequestTime = -1L;
 
+    /**
+     * Create a new transaction with the keep alive task disabled.
+     * @param httpDriver the HTTP driver to use for requests
+     * @param baseUrl the base URL for the Neo4j transaction REST API
+     */
     public Transaction(HttpDriver httpDriver, String baseUrl) {
         this(httpDriver, baseUrl, null, 0L);
     }
 
+    /**
+     * Create a new transaction using the default {@link JsonFactory}.
+     * @param httpDriver the HTTP driver to use for requests
+     * @param baseUrl the base URL for the Neo4j transaction REST API
+     * @param timer the timer to use for scheduling the keep alive task
+     * @param keepAliveMs the period of the keep alive requests in milliseconds
+     */
     public Transaction(HttpDriver httpDriver, String baseUrl, Timer timer, long keepAliveMs) {
-        this(httpDriver, baseUrl, DEFAULT_JSON_FACTORY, timer, keepAliveMs);
+        this(httpDriver, baseUrl, null, timer, keepAliveMs);
     }
 
+    /**
+     * Create a new transaction.
+     * @param httpDriver the HTTP driver to use for requests
+     * @param baseUrl the base URL for the Neo4j transaction REST API
+     * @param jsonFactory factory for creating generators and parsers
+     * @param timer the timer to use for scheduling the keep alive task
+     * @param keepAliveMs the period of the keep alive requests in milliseconds
+     */
     public Transaction(HttpDriver httpDriver, String baseUrl, JsonFactory jsonFactory, Timer timer, long keepAliveMs) {
-        this.jsonFactory = jsonFactory;
+        this.jsonFactory = jsonFactory != null ? jsonFactory : DEFAULT_JSON_FACTORY;
         this.httpDriver = httpDriver;
         this.baseUrl = baseUrl;
         this.timer = timer;
         this.keepAliveMs = keepAliveMs;
     }
 
+    /**
+     * @return true if this transaction has been committed or rolled back.
+     */
     public boolean isComplete() {
         return complete;
     }
 
+    /**
+     * Execute a group of Cypher queries within this transaction.
+     * @param statements the Cypher queries
+     * @return the result of the Cypher queries
+     * @throws IOException
+     * @throws IllegalStateException if this transaction is complete
+     */
     public Response execute(Statement... statements) throws IOException {
-        if (complete) throw new IllegalStateException("Transaction already complete");
-        if (statements.length > 0) return postRequest(new Request(statements), getUri());
+        if (complete) throw new IllegalStateException(TRANSACTION_COMPLETE_ERROR);
+        if (statements.length > 0) return postRequest(getUri(), statements);
         return Response.EMPTY;
     }
 
+    /**
+     * Execute a group of Cypher queries within this transaction and commit the transaction.
+     * @param statements the Cypher queries
+     * @return the result of the Cypher queries
+     * @throws IOException
+     * @throws IllegalStateException if this transaction is complete
+     */
     public Response commit(Statement... statements) throws IOException {
-        if (complete) throw new IllegalStateException("Transaction already complete");
+        if (complete) throw new IllegalStateException(TRANSACTION_COMPLETE_ERROR);
         if (statements.length == 0 && location == null) return Response.EMPTY;
-        Response response = postRequest(new Request(statements), getUri() + "/commit");
+        Response response = postRequest(getUri() + "/commit", statements);
         complete = true;
         return response;
     }
@@ -64,9 +110,9 @@ public class Transaction {
         return location == null ? baseUrl : location;
     }
 
-    private Response postRequest(Request request, String uri) throws IOException {
+    protected Response postRequest(String uri, Statement... statements) throws IOException {
         lastRequestTime = System.currentTimeMillis();
-        try (HttpResponse httpResponse = httpDriver.post(uri, request.toJson(jsonFactory))) {
+        try (HttpResponse httpResponse = httpDriver.post(uri, toJson(statements))) {
             updateLocation(httpResponse.getHeader("Location"));
             return new Response(jsonFactory.createParser(httpResponse.getEntityContent()));
         }
@@ -81,8 +127,32 @@ public class Transaction {
         }
     }
 
+    private String toJson(Statement... statements) throws IOException {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        try (JsonGenerator generator = jsonFactory.createGenerator(stream)) {
+            writeStatements(generator, statements);
+        }
+        return stream.toString("UTF-8");
+    }
+
+    private void writeStatements(JsonGenerator generator, Statement... statements) throws IOException {
+        generator.writeStartObject();
+        generator.writeArrayFieldStart("statements");
+        for (Statement statement : statements) {
+            statement.toJson(generator);
+        }
+        generator.writeEndArray();
+        generator.writeEndObject();
+    }
+
+    /**
+     * Rollback this transaction.
+     * @return the result of rolling back the transaction
+     * @throws IOException
+     * @throws IllegalStateException if this transaction is complete
+     */
     public Response rollback() throws IOException {
-        if (complete) throw new IllegalStateException("Transaction already complete");
+        if (complete) throw new IllegalStateException(TRANSACTION_COMPLETE_ERROR);
         if (location != null) {
             try (HttpResponse httpResponse = httpDriver.delete(location)) {
                 this.complete = true;
@@ -100,7 +170,7 @@ public class Transaction {
                 if (now - lastRequestTime >= keepAliveMs) {
                     try {
                         lastRequestTime = System.currentTimeMillis();
-                        postRequest(new Request(), location).next();
+                        postRequest(location).next();
                     } catch (Throwable ex) {
                         logger.warn("error pinging transaction URL " + location, ex);
                     }

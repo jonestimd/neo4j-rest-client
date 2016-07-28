@@ -17,6 +17,9 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
+/**
+ * This class implements {@link HttpDriver} using the Apache HTTP client library.
+ */
 public class ApacheHttpDriver implements HttpDriver {
     private final CloseableHttpClient client;
     private final HttpClientContext clientContext;

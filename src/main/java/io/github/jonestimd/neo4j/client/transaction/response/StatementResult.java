@@ -8,6 +8,10 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class represents the result of a Cypher query.  The rows are selected sequentially using the {@link #next()}
+ * method.  The get methods are used to retrieve the details for the current row.
+ */
 public class StatementResult {
     private final JsonParser parser;
     private final List<String> columns = new ArrayList<>();
@@ -30,6 +34,11 @@ public class StatementResult {
         }
     }
 
+    /**
+     * Retrieve the next result row.
+     * @return true if there is another row or false if there are no more rows.
+     * @throws IOException
+     */
     public boolean next() throws IOException {
         if (! endOfResult) {
             if (parser.nextToken() == JsonToken.START_OBJECT) {
@@ -46,22 +55,44 @@ public class StatementResult {
         return false;
     }
 
+    /**
+     * Get a column value for the current result row.
+     * @param name the column name
+     * @return the column value
+     */
     public ResultColumn getColumn(String name) {
         return row.getColumn(name);
     }
 
+    /**
+     * Get a column metadata for the current result row.
+     * @param name the column name
+     * @return the column metadata
+     */
     public List<ColumnMeta> getMeta(String name) {
         return row.getMeta(name);
     }
 
+    /**
+     * Get the graph nodes for the current result row.
+     * @return a {@link List} of the nodes
+     */
     public List<Node> getNodes() {
         return row.getNodes();
     }
 
+    /**
+     * Get the graph nodes for the current result row.
+     * @return a {@link Map} of the nodes keyed by the graph IDs
+     */
     public Map<Long, Node> getNodesById() {
         return row.getNodesById();
     }
 
+    /**
+     * Get the graph relationships for the current result row.
+     * @return a {@link List} of the relationships
+     */
     public List<Relationship> getRelationships() {
         return row.getRelationships();
     }

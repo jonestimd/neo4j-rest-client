@@ -48,6 +48,17 @@ public class ResultColumnTest {
     }
 
     @Test
+    public void createBooleanResult() throws Exception {
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream("[true]".getBytes()));
+        parser.nextToken();
+
+        ResultColumn column = new ResultColumn(parser);
+
+        assertThat(parser.nextToken()).isEqualTo(JsonToken.END_ARRAY);
+        assertThat(column.getBoolean().get()).isEqualTo(true);
+    }
+
+    @Test
     public void createListResult() throws Exception {
         JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream("[[\"value1\",\"value2\"]]".getBytes()));
         parser.nextToken();

@@ -9,6 +9,9 @@ import java.util.Set;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class represents a graph node in a query result.
+ */
 public class Node implements GraphElement {
     private final Long id;
     private final Set<String> labels;
@@ -18,21 +21,30 @@ public class Node implements GraphElement {
         this(null, Collections.emptySet(), Collections.emptyMap());
     }
 
-    private Node(Long id, Set<String> labels, Map<String, Object> properties) {
+    public Node(Long id, Set<String> labels, Map<String, Object> properties) {
         this.id = id;
         this.labels = Collections.unmodifiableSet(labels);
         this.properties = Collections.unmodifiableMap(properties);
     }
 
+    /**
+     * Get the graph ID of this node.
+     */
     @Override
     public Long getId() {
         return id;
     }
 
+    /**
+     * Get the labels of this node.
+     */
     public Set<String> getLabels() {
         return labels;
     }
 
+    /**
+     * Get the properties attached to this node.
+     */
     @Override
     public Map<String, Object> getProperties() {
         return properties;

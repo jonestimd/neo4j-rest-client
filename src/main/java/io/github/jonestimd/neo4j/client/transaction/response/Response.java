@@ -7,6 +7,10 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class represents the results of a group of Cypher queries.  The query results are selected sequentially using
+ * the {@link #next()} method.  The {@link #getResult()} method is used to retrieve the current query result.
+ */
 public class Response {
     public static final Response EMPTY = new Response();
     private final JsonParser parser;
@@ -32,6 +36,12 @@ public class Response {
         endOfResponse = parser.getCurrentToken() == JsonToken.END_OBJECT;
     }
 
+    /**
+     * Retrieve the next query result.
+     * @return true if there is another result or false if there are no more results.
+     * @throws IOException
+     * @throws StatementException if the query resulted in an error
+     */
     public boolean next() throws StatementException, IOException {
         if (! endOfResponse) {
             if (result != null) {
@@ -60,6 +70,9 @@ public class Response {
         }
     }
 
+    /**
+     * Get the current query result.
+     */
     public StatementResult getResult() {
         return result;
     }

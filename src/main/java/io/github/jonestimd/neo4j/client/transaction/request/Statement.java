@@ -11,6 +11,9 @@ import java.util.Map.Entry;
 import com.fasterxml.jackson.core.JsonGenerator;
 import io.github.jonestimd.neo4j.client.ToJson;
 
+/**
+ * This class represents a Cypher query.
+ */
 public class Statement implements ToJson {
     private final boolean includeStats;
     private final List<ResultType> resultTypes = new ArrayList<>();
@@ -19,11 +22,20 @@ public class Statement implements ToJson {
 
     /**
      * Default statistics to {@code false} and results to both {@link ResultType#Row} and {@link ResultType#Graph}.
+     * @param query the Cypher query
+     * @param parameters the parameter values for the query
      */
     public Statement(String query, Map<String, ?> parameters) {
         this(query, parameters, false, ResultType.Row, ResultType.Graph);
     }
 
+    /**
+     * Create a Cypher query.
+     * @param query the Cypher query
+     * @param parameters the parameter values for the query
+     * @param includeStats true to return statistics with the results
+     * @param resultTypes the types of results to return
+     */
     public Statement(String query, Map<String, ?> parameters, boolean includeStats, ResultType... resultTypes) {
         this.query = query;
         this.includeStats = includeStats;

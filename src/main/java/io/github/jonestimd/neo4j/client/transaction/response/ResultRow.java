@@ -11,11 +11,79 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class represents a row of a query result.  It contains the column values, column metadata, nodes and
+ * relationships for the result row.
+ */
 public class ResultRow {
     private final Map<String, ResultColumn> columns = new HashMap<>();
     private final Map<String, List<ColumnMeta>> meta = new HashMap<>();
     private List<Node> nodes = Collections.emptyList();
     private List<Relationship> relationships = Collections.emptyList();
+
+    /**
+     * Get the value of a column in the current row.
+     * @param name the column name
+     */
+    public ResultColumn getColumn(String name) {
+        return columns.get(name);
+    }
+
+    /**
+     * Get the metadata of a column in the current row.
+     * @param name the column name
+     */
+    public List<ColumnMeta> getMeta(String name) {
+        return meta.get(name);
+    }
+
+    /**
+     * Get the list of graph nodes for the current row.
+     */
+    public List<Node> getNodes() {
+        return nodes;
+    }
+
+    /**
+     * Get a map of the graph nodes for the current row.  Can be used to look up the start and end nodes of a relationship.
+     * @return a {@link Map} of nodes keyed by the graph IDs.
+     */
+    public Map<Long, Node> getNodesById() {
+        return nodes.stream().collect(Collectors.toMap(Node::getId, Function.identity()));
+    }
+
+    /**
+     * Get the list of graph relationships for the current row.
+     */
+    public List<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    /**
+     * Read the next result row from a JSON stream.
+     * @param columnNames the query result column names
+     * @param parser the JSON parser for the stream
+     * @return a row of the query result
+     * @throws IOException
+     */
+    public static ResultRow read(List<String> columnNames, JsonParser parser) throws IOException {
+        assert parser.getCurrentToken() == JsonToken.START_OBJECT;
+        ResultRow row = new ResultRow();
+        while (parser.nextToken() == JsonToken.FIELD_NAME) {
+            switch (parser.getCurrentName()) {
+                case "row":
+                    row.addColumns(columnNames, parser);
+                    break;
+                case "meta":
+                    row.addMeta(columnNames, parser);
+                    break;
+                case "graph":
+                    row.addGraph(parser);
+                    break;
+            }
+        }
+        return row;
+    }
 
     private void addColumns(List<String> columnNames, JsonParser parser) throws IOException {
         assert parser.nextToken() == JsonToken.START_ARRAY;
@@ -45,44 +113,5 @@ public class ResultRow {
                     break;
             }
         }
-    }
-
-    public ResultColumn getColumn(String name) {
-        return columns.get(name);
-    }
-
-    public List<ColumnMeta> getMeta(String name) {
-        return meta.get(name);
-    }
-
-    public List<Node> getNodes() {
-        return nodes;
-    }
-
-    public Map<Long, Node> getNodesById() {
-        return nodes.stream().collect(Collectors.toMap(Node::getId, Function.identity()));
-    }
-
-    public List<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    public static ResultRow read(List<String> columnNames, JsonParser parser) throws IOException {
-        assert parser.getCurrentToken() == JsonToken.START_OBJECT;
-        ResultRow row = new ResultRow();
-        while (parser.nextToken() == JsonToken.FIELD_NAME) {
-            switch (parser.getCurrentName()) {
-                case "row":
-                    row.addColumns(columnNames, parser);
-                    break;
-                case "meta":
-                    row.addMeta(columnNames, parser);
-                    break;
-                case "graph":
-                    row.addGraph(parser);
-                    break;
-            }
-        }
-        return row;
     }
 }

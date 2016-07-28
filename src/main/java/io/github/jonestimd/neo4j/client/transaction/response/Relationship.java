@@ -7,6 +7,9 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+/**
+ * This class represents a graph relationship in a query result.
+ */
 public class Relationship implements GraphElement {
     private final Long id;
     private final String type;
@@ -26,23 +29,38 @@ public class Relationship implements GraphElement {
         this.properties = Collections.unmodifiableMap(properties);
     }
 
+    /**
+     * Get the graph ID of this relationship.
+     */
     @Override
     public Long getId() {
         return id;
     }
 
+    /**
+     * Get the type of this relationship.
+     */
     public String getType() {
         return type;
     }
 
+    /**
+     * Get the graph ID of the starting node.
+     */
     public Long getStartId() {
         return startId;
     }
 
+    /**
+     * Get the graph ID of the ending node.
+     */
     public Long getEndId() {
         return endId;
     }
 
+    /**
+     * Get the properties attached to this relationship.
+     */
     @Override
     public Map<String, Object> getProperties() {
         return properties;
