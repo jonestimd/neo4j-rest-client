@@ -1,4 +1,4 @@
-# neo4j-rest-client
+# neo4j-rest-java
 Java REST client for Neo4j database
 
 ### Features
