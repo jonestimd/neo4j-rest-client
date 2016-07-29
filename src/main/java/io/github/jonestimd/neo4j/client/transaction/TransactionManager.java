@@ -53,7 +53,7 @@ public class TransactionManager {
      * @param keepAliveMs the period of the keep alive requests in milliseconds
      */
     public TransactionManager(HttpDriver httpDriver, String baseUrl, JsonFactory jsonFactory, Timer timer, long keepAliveMs) {
-        this(() -> new Transaction(httpDriver, baseUrl, jsonFactory, timer, keepAliveMs));
+        this(Transaction.factory(httpDriver, baseUrl, jsonFactory, timer, keepAliveMs));
     }
 
     /**

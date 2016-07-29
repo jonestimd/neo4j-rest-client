@@ -3,6 +3,7 @@ package io.github.jonestimd.neo4j.client.transaction;
 import java.io.IOException;
 import java.util.Random;
 
+import io.github.jonestimd.neo4j.client.http.HttpDriver;
 import junit.framework.Assert;
 import org.junit.Test;
 
@@ -125,6 +126,24 @@ public class TransactionManagerTest {
         verify(transaction).commit();
         verify(transaction, never()).rollback();
         verify(callback).apply(transaction);
+        assertThat(TransactionManager.getTransaction()).isNull();
+    }
+
+    @Test
+    public void defaultTransactionFactory() throws Exception {
+        long result = new Random().nextLong();
+        HttpDriver httpDriver = mock(HttpDriver.class);
+        TransactionManager manager = new TransactionManager(httpDriver, "https://localhost:7474/rest", null, null, 0L);
+        when(callback.apply(any())).thenAnswer(invocation -> {
+            Transaction transaction = (Transaction) invocation.getArguments()[0];
+            assertThat(transaction).isNotNull();
+            assertThat(transaction).isSameAs(TransactionManager.getTransaction());
+            assertThat(transaction.getUri()).isEqualTo("https://localhost:7474/rest");
+            return result;
+        });
+
+        assertThat(manager.doInTransaction(callback)).isEqualTo(result);
+
         assertThat(TransactionManager.getTransaction()).isNull();
     }
 }

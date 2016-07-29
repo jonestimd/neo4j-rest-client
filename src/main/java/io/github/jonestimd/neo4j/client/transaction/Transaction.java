@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.function.Supplier;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -55,6 +56,19 @@ public class Transaction {
     private volatile String location;
     private volatile boolean complete = false;
     private volatile long lastRequestTime = -1L;
+
+    /**
+     * Create a transaction factory that uses the supplied parameters to create transactions.  The driver and URL
+     * are required and the remaining parameters are optional.
+     * @param httpDriver the HTTP driver to use for requests
+     * @param baseUrl the base URL for the Neo4j transaction REST API
+     * @param jsonFactory factory for creating generators and parsers
+     * @param timer the timer to use for scheduling the keep alive task
+     * @param keepAliveMs the period of the keep alive requests in milliseconds
+     */
+    public static Supplier<Transaction> factory(HttpDriver httpDriver, String baseUrl, JsonFactory jsonFactory, Timer timer, long keepAliveMs) {
+        return () -> new Transaction(httpDriver, baseUrl, jsonFactory, timer, keepAliveMs);
+    }
 
     /**
      * Create a new transaction with the keep alive task disabled.
