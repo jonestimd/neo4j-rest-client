@@ -77,6 +77,20 @@ public class TransactionManager {
      * then that transaction is used.  Otherwise, a new transaction is created, passed to the {@code callback} and
      * committed or rolled back after the {@code callback} completes.
      * @param callback the task to perform in the transaction
+     * @throws Exception
+     */
+    public void runInTransaction(TransactionConsumer callback) throws Exception {
+        doInTransaction(transaction -> {
+            callback.accept(transaction);
+            return null;
+        });
+    }
+
+    /**
+     * Run the {@code callback} in a transaction.  If there is already a transaction associated with the current thread
+     * then that transaction is used.  Otherwise, a new transaction is created, passed to the {@code callback} and
+     * committed or rolled back after the {@code callback} completes.
+     * @param callback the task to perform in the transaction
      * @param <T> the result type of the {@code callback}
      * @return the result of {@code callback}
      * @throws Exception

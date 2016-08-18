@@ -13,6 +13,7 @@ import static org.mockito.Mockito.*;
 public class TransactionManagerTest {
     @SuppressWarnings("unchecked")
     private TransactionCallback<Long> callback = mock(TransactionCallback.class);
+    private TransactionConsumer consumer = mock(TransactionConsumer.class);
     private Transaction transaction = mock(Transaction.class);
 
     private TransactionManager transactionManager = new TransactionManager(() -> transaction);
@@ -126,6 +127,18 @@ public class TransactionManagerTest {
         verify(transaction).commit();
         verify(transaction, never()).rollback();
         verify(callback).apply(transaction);
+        assertThat(TransactionManager.getTransaction()).isNull();
+    }
+
+    @Test
+    public void runInTransactionPassesTransactionToConsumer() throws Exception {
+        when(transaction.isComplete()).thenReturn(false);
+
+        transactionManager.runInTransaction(consumer);
+
+        verify(transaction).commit();
+        verify(transaction, never()).rollback();
+        verify(consumer).accept(transaction);
         assertThat(TransactionManager.getTransaction()).isNull();
     }
 

@@ -22,17 +22,10 @@
 package io.github.jonestimd.neo4j.client.transaction;
 
 /**
- * This functional interface is used with {@link TransactionManager} to perform tasks that return results
+ * This functional interface is used with {@link TransactionManager} to perform tasks that do not return results
  * in a transaction.
- * @param <T> the result type of the task
- * @see {@link TransactionManager#doInTransaction(TransactionCallback)}
+ * @see {@link TransactionManager#runInTransaction(TransactionConsumer)}
  */
-public interface TransactionCallback<T> {
-    /**
-     * Called by {@link TransactionManager}.
-     * @param transaction the current transaction.
-     * @return the result of the task
-     * @throws Exception
-     */
-    T apply(Transaction transaction) throws Exception;
+public interface TransactionConsumer {
+    void accept(Transaction transaction) throws Exception;
 }
