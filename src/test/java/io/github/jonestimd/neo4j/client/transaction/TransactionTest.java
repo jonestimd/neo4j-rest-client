@@ -207,10 +207,9 @@ public class TransactionTest {
         Thread.sleep(45L);
         transaction.commit();
 
-        Thread.sleep(50L);
         verify(httpDriver).post(BASE_URL, STATEMENTS_JSON);
         verify(httpDriver).post(BASE_URL + "/1", STATEMENTS_JSON);
-        verify(httpDriver).post(BASE_URL + "/1", "{\"statements\":[]}");
+        verify(httpDriver, timeout(60).atLeast(1)).post(BASE_URL + "/1", "{\"statements\":[]}");
         verify(httpResponse, times(4)).close();
     }
 
@@ -229,9 +228,8 @@ public class TransactionTest {
         Thread.sleep(75L);
         transaction.rollback();
 
-        Thread.sleep(50L);
         verify(httpDriver).post(BASE_URL, STATEMENTS_JSON);
-        verify(httpDriver, times(2)).post(BASE_URL + "/1", "{\"statements\":[]}");
+        verify(httpDriver, timeout(60).atLeast(2)).post(BASE_URL + "/1", "{\"statements\":[]}");
         verify(httpResponse, times(4)).close();
     }
 }
