@@ -210,7 +210,7 @@ public class TransactionTest {
         verify(httpDriver).post(BASE_URL, STATEMENTS_JSON);
         verify(httpDriver).post(BASE_URL + "/1", STATEMENTS_JSON);
         verify(httpDriver, timeout(60).atLeast(1)).post(BASE_URL + "/1", "{\"statements\":[]}");
-        verify(httpResponse, times(4)).close();
+        verify(httpResponse, atLeast(4)).close();
     }
 
     @Test
@@ -230,6 +230,6 @@ public class TransactionTest {
 
         verify(httpDriver).post(BASE_URL, STATEMENTS_JSON);
         verify(httpDriver, timeout(60).atLeast(2)).post(BASE_URL + "/1", "{\"statements\":[]}");
-        verify(httpResponse, times(4)).close();
+        verify(httpResponse, atLeast(4)).close();
     }
 }
