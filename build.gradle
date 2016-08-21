@@ -1,9 +1,13 @@
 apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 compileJava.sourceCompatibility = 1.8
+compileJava.targetCompatibility = 1.8
 
-group = 'io.github.jonestimd'
-version = '0.1-SNAPSHOT'
+group = 'io.github.jonestimd.neo4j'
+version = '1.0-SNAPSHOT'
 
 repositories {
     mavenLocal()
@@ -21,4 +25,85 @@ dependencies {
     testCompile( group: 'org.mockito', name: 'mockito-core', version: '1.9.0' )
 
     testRuntime( group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.21')
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'io.github.jonestimd.neo4j:neo4j-rest-java',
+                'Implementation-Version': version
+    }
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled false
+    }
+}
+
+check.dependsOn jacocoTestReport
+
+javadoc {
+    options.addStringOption('Xdoclint:none', '-quiet')
+    options.addStringOption('link', 'http://docs.oracle.com/javase/8/docs/api')
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourceJar(type: Jar) {
+    classifier "sources"
+    from(sourceSets.main.allSource)
+}
+
+artifacts {
+    archives javadocJar, sourceJar
+}
+
+if (hasProperty('signing.keyId')) signing {
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            if (project.hasProperty('ossrhUsername')) repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: 'file:///' + System.properties['user.home'] + '/.m2/repository')
+
+            pom.project {
+                name = rootProject.group + ':' + rootProject.name
+                packaging = 'jar'
+                description = 'Java REST client for Neo4j database'
+                url = 'https://jonestimd.github.io/neo4j-rest-java'
+
+                scm {
+                    connection = 'scm:git:https://github.com/jonestimd/neo4j-rest-java.git'
+                    developerConnection = 'scm:git:https://github.com/jonestimd/neo4j-rest-java.git'
+                    url = 'https://github.com/jonestimd/neo4j-rest-java'
+                }
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/jonestimd/neo4j-rest-java/blob/master/LICENSE'
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = 'Tim Jones'
+                        organizationUrl = 'https://github.com/jonestimd'
+                        email = 'jonestimd@users.noreply.github.com'
+                    }
+                }
+            }
+        }
+    }
 }
