@@ -1,5 +1,7 @@
 # neo4j-rest-java
 [![travis-ci.org](https://travis-ci.org/jonestimd/neo4j-rest-java.svg?branch=master)](https://travis-ci.org/jonestimd/neo4j-rest-java?branch=master)
+[![codecov.io](https://codecov.io/github/jonestimd/neo4j-rest-java/coverage.svg?branch=master)](https://codecov.io/github/jonestimd/neo4j-rest-java?branch=master)
+
 Java REST client for Neo4j database
 
 ### Features
