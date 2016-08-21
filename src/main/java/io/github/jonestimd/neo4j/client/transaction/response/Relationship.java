@@ -28,6 +28,8 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+import static io.github.jonestimd.neo4j.client.transaction.response.JsonReader.*;
+
 /**
  * This class represents a graph relationship in a query result.
  */
@@ -88,33 +90,31 @@ public class Relationship implements GraphElement {
     }
 
     public static Relationship read(JsonParser parser) throws IOException {
-        assert parser.getCurrentToken() == JsonToken.START_OBJECT;
+        checkToken(parser, JsonToken.START_OBJECT);
         Long id = null;
         String type = null;
         Long startId = null;
         Long endId = null;
         Map<String, Object> properties = Collections.emptyMap();
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
-            switch (parser.getText()) {
-                case "id":
-                    parser.nextToken();
-                    id = Long.valueOf(parser.getText());
-                    break;
-                case "startNode":
-                    parser.nextToken();
-                    startId = Long.valueOf(parser.getText());
-                    break;
-                case "endNode":
-                    parser.nextToken();
-                    endId = Long.valueOf(parser.getText());
-                    break;
-                case "type":
-                    parser.nextToken();
-                    type = parser.getText();
-                    break;
-                case "properties":
-                    properties = JsonReader.readObject(parser);
-                    break;
+            String name = parser.getText();
+            if ("id".equals(name)) {
+                id = readLong(parser);
+            }
+            else if ("startNode".equals(name)) {
+                startId = readLong(parser);
+            }
+            else if ("endNode".equals(name)) {
+                endId = readLong(parser);
+            }
+            else if ("type".equals(name)) {
+                type = parser.nextTextValue();
+            }
+            else if ("properties".equals(name)) {
+                properties = readObject(parser);
+            }
+            else {
+                readNext(parser);
             }
         }
         return new Relationship(id, type, startId, endId, properties);

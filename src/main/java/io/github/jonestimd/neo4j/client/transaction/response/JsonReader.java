@@ -50,12 +50,13 @@ public class JsonReader {
      * @throws IOException
      */
     public static Object readNext(JsonParser parser) throws IOException {
-        return getValue(parser.nextToken(), parser);
+        parser.nextToken();
+        return getValue(parser);
     }
 
-    private static Object getValue(JsonToken event, JsonParser parser) throws IOException {
-        switch (event) {
-            case START_ARRAY: return getArray(parser);
+    private static Object getValue(JsonParser parser) throws IOException {
+        switch (parser.getCurrentToken()) {
+            case START_ARRAY: return getArray(parser, JsonReader::getValue);
             case START_OBJECT: return getObject(parser);
             case VALUE_STRING: return parser.getText();
             case VALUE_NUMBER_INT: return parser.getLongValue();
@@ -70,18 +71,14 @@ public class JsonReader {
     /**
      * Read an array from a stream.
      * @param parser the JSON stream parser
-     * @param reader a function to read an array element
+     * @param decoder a function to read an array element
      * @param <T> the type of the array elements
      * @return a {@code List} containing the array elements
      * @throws IOException
      */
-    public static <T> List<T> readArray(JsonParser parser, JsonDecoder<T> reader) throws IOException {
-        assert parser.nextToken() == JsonToken.START_ARRAY;
-        List<T> result = new ArrayList<>();
-        while (parser.nextToken() != JsonToken.END_ARRAY) {
-            result.add(reader.apply(parser));
-        }
-        return result;
+    public static <T> List<T> readArray(JsonParser parser, JsonDecoder<T> decoder) throws IOException {
+        checkNextToken(parser, JsonToken.START_ARRAY);
+        return getArray(parser, decoder);
     }
 
     /**
@@ -103,11 +100,10 @@ public class JsonReader {
         return readArray(parser, JsonReader::getObject);
     }
 
-    private static List<Object> getArray(JsonParser parser) throws IOException {
-        List<Object> result = new ArrayList<>();
-        JsonToken event;
-        while ((event = parser.nextToken()) != JsonToken.END_ARRAY) {
-            result.add(getValue(event, parser));
+    private static <T> List<T> getArray(JsonParser parser, JsonDecoder<T> decoder) throws IOException {
+        List<T> result = new ArrayList<>();
+        while (parser.nextToken() != JsonToken.END_ARRAY) {
+            result.add(decoder.apply(parser));
         }
         return result;
     }
@@ -119,7 +115,7 @@ public class JsonReader {
      * @throws IOException
      */
     public static Map<String, Object> readObject(JsonParser parser) throws IOException {
-        assert parser.nextToken() == JsonToken.START_OBJECT;
+        checkNextToken(parser, JsonToken.START_OBJECT);
         return getObject(parser);
     }
 
@@ -129,6 +125,19 @@ public class JsonReader {
             result.put(parser.getText(), readNext(parser));
         }
         return result;
+    }
+
+    public static void checkToken(JsonParser parser, JsonToken expected) {
+        if (parser.getCurrentToken() != expected) throw new ParseResponseException(parser.getCurrentLocation());
+    }
+
+    public static void checkNextToken(JsonParser parser, JsonToken expected) throws IOException {
+        if (parser.nextToken() != expected) throw new ParseResponseException(parser.getCurrentLocation());
+    }
+
+    public static Long readLong(JsonParser parser) throws IOException {
+        parser.nextToken();
+        return Long.valueOf(parser.getText());
     }
 
     /**

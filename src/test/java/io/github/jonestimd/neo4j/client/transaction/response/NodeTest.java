@@ -1,6 +1,7 @@
 package io.github.jonestimd.neo4j.client.transaction.response;
 
 import java.io.ByteArrayInputStream;
+import java.util.Collections;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
@@ -13,8 +14,31 @@ public class NodeTest {
     private final JsonFactory jsonFactory = new JsonFactory();
 
     @Test
-    public void readWithoutProperties() throws Exception {
+    public void defaultConstructor() throws Exception {
+        Node node = new Node();
+
+        assertThat(node.getId()).isNull();
+        assertThat(node.getLabels()).isEmpty();
+        assertThat(node.getProperties()).isEmpty();
+    }
+
+    @Test
+    public void toStringFormat() throws Exception {
+        Node node = new Node(99L, Collections.singleton("LABEL"), Collections.singletonMap("key", "value"));
+
+        assertThat(node.toString()).isEqualTo("Node(id=99,labels=[LABEL],properties={key=value})");
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void invalidStartToken() throws Exception {
         JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream("{\"id\":\"1\",\"labels\":[\"l1\"]}".getBytes()));
+
+        Node.read(parser);
+    }
+
+    @Test
+    public void readWithoutProperties() throws Exception {
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream("{\"id\":\"1\",\"ignored\":\"???\",\"labels\":[\"l1\"]}".getBytes()));
         parser.nextToken();
 
         Node node = Node.read(parser);

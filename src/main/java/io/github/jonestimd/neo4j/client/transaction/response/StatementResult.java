@@ -46,7 +46,7 @@ public class StatementResult {
                 columns.addAll(JsonReader.readStrings(parser));
             }
             else if (parser.getCurrentName().equals("data")) {
-                assert parser.nextToken() == JsonToken.START_ARRAY;
+                JsonReader.checkNextToken(parser, JsonToken.START_ARRAY);
                 break;
             }
             else {

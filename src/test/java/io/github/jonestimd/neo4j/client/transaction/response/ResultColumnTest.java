@@ -70,6 +70,17 @@ public class ResultColumnTest {
     }
 
     @Test
+    public void nullListResult() throws Exception {
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream("[null]".getBytes()));
+        parser.nextToken();
+
+        ResultColumn column = new ResultColumn(parser);
+
+        assertThat(parser.nextToken()).isEqualTo(JsonToken.END_ARRAY);
+        assertThat(column.getList()).isEmpty();
+    }
+
+    @Test
     public void createObjectResult() throws Exception {
         JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream("[{\"p1\":\"value1\",\"p2\":\"value2\"}]".getBytes()));
         parser.nextToken();

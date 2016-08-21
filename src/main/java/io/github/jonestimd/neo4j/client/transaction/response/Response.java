@@ -28,6 +28,8 @@ import java.util.Map;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+import static io.github.jonestimd.neo4j.client.transaction.response.JsonReader.*;
+
 /**
  * This class represents the results of a group of Cypher queries.  The query results are selected sequentially using
  * the {@link #next()} method.  The {@link #getResult()} method is used to retrieve the current query result.
@@ -45,14 +47,14 @@ public class Response {
 
     public Response(JsonParser parser) throws StatementException, IOException {
         this.parser = parser;
-        assert parser.nextToken() == JsonToken.START_OBJECT;
+        checkNextToken(parser, JsonToken.START_OBJECT);
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
             if (parser.getCurrentName().equals("results")) {
-                assert parser.nextToken() == JsonToken.START_ARRAY;
+                checkNextToken(parser, JsonToken.START_ARRAY);
                 break;
             }
             else if (parser.getCurrentName().equals("errors")) readErrors();
-            else JsonReader.readNext(parser);
+            else readNext(parser);
         }
         endOfResponse = parser.getCurrentToken() == JsonToken.END_OBJECT;
     }
@@ -76,6 +78,8 @@ public class Response {
                     while (parser.nextToken() == JsonToken.FIELD_NAME) {
                         if (parser.getCurrentName().equals("errors")) readErrors();
                     }
+                    break;
+                default: throw new ParseResponseException(parser.getCurrentLocation());
             }
             result = null;
             endOfResponse = true;
@@ -84,7 +88,7 @@ public class Response {
     }
 
     private void readErrors() throws IOException {
-        List<Map<String, Object>> errors = JsonReader.readObjects(parser);
+        List<Map<String, Object>> errors = readObjects(parser);
         if (! errors.isEmpty()) {
             Map<String, Object> error = errors.get(0);
             throw new StatementException((String) error.get("code"), (String) error.get("message"));

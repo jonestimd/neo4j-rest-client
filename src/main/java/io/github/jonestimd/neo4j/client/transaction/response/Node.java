@@ -30,6 +30,8 @@ import java.util.Set;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+import static io.github.jonestimd.neo4j.client.transaction.response.JsonReader.*;
+
 /**
  * This class represents a graph node in a query result.
  */
@@ -72,23 +74,23 @@ public class Node implements GraphElement {
     }
 
     public static Node read(JsonParser parser) throws IOException {
-        assert parser.getCurrentToken() == JsonToken.START_OBJECT;
+        checkToken(parser, JsonToken.START_OBJECT);
         Long id = null;
         Set<String> labels = new HashSet<>();
         Map<String, Object> properties = Collections.emptyMap();
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
-            switch (parser.getCurrentName()) {
-                case "id":
-                    id = Long.valueOf(parser.nextTextValue());
-                    break;
-                case "labels":
-                    assert parser.nextToken() == JsonToken.START_ARRAY;
-                    while (parser.nextToken() != JsonToken.END_ARRAY) labels.add(parser.getText());
-                    break;
-                case "properties":
-                    properties = JsonReader.readObject(parser);
-                    break;
+            String name = parser.getCurrentName();
+            if ("id".equals(name)) {
+                id = Long.valueOf(parser.nextTextValue());
             }
+            else if ("labels".equals(name)) {
+                checkNextToken(parser, JsonToken.START_ARRAY);
+                while (parser.nextToken() != JsonToken.END_ARRAY) labels.add(parser.getText());
+            }
+            else if ("properties".equals(name)) {
+                properties = JsonReader.readObject(parser);
+            }
+            else readNext(parser);
         }
         return new Node(id, labels, properties);
     }

@@ -19,11 +19,13 @@ public class ResultRowTest {
     public void readResultRow() throws Exception {
         String json = "{\"row\":[{\"p1\":100,\"p2\":\"value1\"},\"value2\"]," +
                 "\"meta\":[{\"id\":1,\"type\":\"node\",\"deleted\":false},null]," +
+                "\"ignored\":{}," +
                 "\"graph\":{" +
                 "\"nodes\":[" +
                 "{\"id\":\"1\",\"labels\":[\"Label\"],\"properties\":{\"p1\":100,\"p2\":\"value1\"}}," +
                 "{\"id\":\"3\",\"labels\":[\"Label\"],\"properties\":{\"p1\":101,\"p2\":\"value9\"}}]," +
-                "\"relationships\":[{\"id\":2,\"type\":\"R1\",\"startNode\":1,\"endNode\":2,\"properties\":{}}]}}";
+                "\"relationships\":[{\"id\":2,\"type\":\"R1\",\"startNode\":1,\"endNode\":2,\"properties\":{}}]," +
+                "\"ignored\":{}}}";
         JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
         parser.nextToken();
 
@@ -40,5 +42,76 @@ public class ResultRowTest {
         assertThat(row.getMeta("c2")).containsExactly((Object) null);
         assertThat(row.getNodes()).hasSize(2);
         assertThat(row.getRelationships()).hasSize(1);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void readThrowsExceptionIfNotAtStartToken() throws Exception {
+        String json = "{}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void invalidRow() throws Exception {
+        String json = "{\"row\":{}}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void extraRowColumn() throws Exception {
+        String json = "{\"row\":[\"one\",\"two\",\"three\"]}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void missingRowColumn() throws Exception {
+        String json = "{\"row\":[\"one\"]}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void invalidMeta() throws Exception {
+        String json = "{\"meta\":{}}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void extraMetaColumn() throws Exception {
+        String json = "{\"meta\":[{},{},{}]}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void missingMetaColumn() throws Exception {
+        String json = "{\"meta\":[{}]}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void invalidGraph() throws Exception {
+        String json = "{\"graph\":[]}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+        parser.nextToken();
+
+        ResultRow.read(Arrays.asList("c1", "c2"), parser);
     }
 }

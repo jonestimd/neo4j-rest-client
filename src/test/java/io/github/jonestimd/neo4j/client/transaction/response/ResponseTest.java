@@ -22,9 +22,27 @@ public class ResponseTest {
         assertThat(response.next()).isFalse();
     }
 
+    @Test(expected = ParseResponseException.class)
+    public void invalidResults() throws Exception {
+        String json = "{\"results\":\"x\"}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+
+        new Response(parser);
+    }
+
+    @Test(expected = ParseResponseException.class)
+    public void invalidResponse() throws Exception {
+        String json = "{\"results\":[{},\"x\"]}";
+        JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
+
+        Response response = new Response(parser);
+        response.next();
+        response.next();
+    }
+
     @Test
     public void errorFirstResponse() throws Exception {
-        String json = "{\"errors\":[{\"code\":\"Code\",\"message\":\"Message\"}],\"results\":[]}";
+        String json = "{\"ignored\":{},\"errors\":[{\"code\":\"Code\",\"message\":\"Message\"}],\"results\":[]}";
         JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
 
         try {
@@ -53,7 +71,7 @@ public class ResponseTest {
 
     @Test
     public void emptyResultResponse() throws Exception {
-        String json = "{\"ignored\":{},\"results\":[{\"columns\":[],\"data\":[]}],\"errors\":[]}";
+        String json = "{\"ignored\":{},\"results\":[{\"columns\":[],\"data\":[]}],\"errors\":[],\"unknown\":{}}";
         JsonParser parser = jsonFactory.createParser(new ByteArrayInputStream(json.getBytes()));
         Response response = new Response(parser);
 

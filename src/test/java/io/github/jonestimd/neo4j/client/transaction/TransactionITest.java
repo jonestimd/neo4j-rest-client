@@ -12,11 +12,13 @@ import io.github.jonestimd.neo4j.client.transaction.response.Node;
 import io.github.jonestimd.neo4j.client.transaction.response.Relationship;
 import io.github.jonestimd.neo4j.client.transaction.response.Response;
 import io.github.jonestimd.neo4j.client.transaction.response.StatementResult;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static java.util.Collections.*;
 import static org.fest.assertions.Assertions.*;
 
+@Ignore
 public class TransactionITest {
     public static final String BASE_URL = "http://localhost:7474/db/data/transaction";
     private final HttpDriver httpDriver = new ApacheHttpDriver("neo4j", "neo4jx", "localhost", 7474);

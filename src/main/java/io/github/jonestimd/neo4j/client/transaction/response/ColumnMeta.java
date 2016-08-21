@@ -29,6 +29,8 @@ import java.util.List;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+import static io.github.jonestimd.neo4j.client.transaction.response.JsonReader.*;
+
 /**
  * This class represents metadata for a column value in a row of a query result.  For a node or relationship column, a list
  * of one {@code ColumnMeta} is returned.  For a path column, the list contains one {@code ColumnMeta} for each path element.
@@ -95,17 +97,16 @@ public class ColumnMeta {
     }
 
     private static ColumnMeta parseMeta(JsonParser parser) throws IOException {
-        assert parser.getCurrentToken() == JsonToken.START_OBJECT;
         Long id = null;
         MetaType type = null;
         boolean deleted = false;
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
             if (parser.getCurrentName().equals("id")) {
-                assert parser.nextToken() == JsonToken.VALUE_NUMBER_INT;
+                checkNextToken(parser, JsonToken.VALUE_NUMBER_INT);
                 id = parser.getLongValue();
             }
             else if (parser.getCurrentName().equals("type")) {
-                assert parser.nextToken() == JsonToken.VALUE_STRING;
+                checkNextToken(parser, JsonToken.VALUE_STRING);
                 type = MetaType.valueOf(parser.getText().toUpperCase());
             }
             else if (parser.getCurrentName().equals("deleted")) {

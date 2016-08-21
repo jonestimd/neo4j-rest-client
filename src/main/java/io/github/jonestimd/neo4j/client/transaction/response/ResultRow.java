@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 
+import static io.github.jonestimd.neo4j.client.transaction.response.JsonReader.*;
+
 /**
  * This class represents a row of a query result.  It contains the column values, column metadata, nodes and
  * relationships for the result row.
@@ -88,51 +90,51 @@ public class ResultRow {
      * @throws IOException
      */
     public static ResultRow read(List<String> columnNames, JsonParser parser) throws IOException {
-        assert parser.getCurrentToken() == JsonToken.START_OBJECT;
+        checkToken(parser, JsonToken.START_OBJECT);
         ResultRow row = new ResultRow();
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
-            switch (parser.getCurrentName()) {
-                case "row":
-                    row.addColumns(columnNames, parser);
-                    break;
-                case "meta":
-                    row.addMeta(columnNames, parser);
-                    break;
-                case "graph":
-                    row.addGraph(parser);
-                    break;
+            String name = parser.getCurrentName();
+            if ("row".equals(name)) {
+                row.addColumns(columnNames, parser);
             }
+            else if ("meta".equals(name)) {
+                row.addMeta(columnNames, parser);
+            }
+            else if ("graph".equals(name)) {
+                row.addGraph(parser);
+            }
+            else readNext(parser);
         }
         return row;
     }
 
     private void addColumns(List<String> columnNames, JsonParser parser) throws IOException {
-        assert parser.nextToken() == JsonToken.START_ARRAY;
+        checkNextToken(parser, JsonToken.START_ARRAY);
         for (String name : columnNames) {
             columns.put(name, new ResultColumn(parser));
         }
-        assert parser.nextToken() == JsonToken.END_ARRAY;
+        checkNextToken(parser, JsonToken.END_ARRAY);
     }
 
     private void addMeta(List<String> columnNames, JsonParser parser) throws IOException {
-        assert parser.nextToken() == JsonToken.START_ARRAY;
+        checkNextToken(parser, JsonToken.START_ARRAY);
         for (String name : columnNames) {
             meta.put(name, ColumnMeta.read(parser));
         }
-        assert parser.nextToken() == JsonToken.END_ARRAY;
+        checkNextToken(parser, JsonToken.END_ARRAY);
     }
 
     private void addGraph(JsonParser parser) throws IOException {
-        assert parser.nextToken() == JsonToken.START_OBJECT;
+        checkNextToken(parser, JsonToken.START_OBJECT);
         while (parser.nextToken() == JsonToken.FIELD_NAME) {
-            switch (parser.getCurrentName()) {
-                case "nodes":
-                    nodes = Collections.unmodifiableList(JsonReader.readArray(parser, Node::read));
-                    break;
-                case "relationships":
-                    relationships = Collections.unmodifiableList(JsonReader.readArray(parser, Relationship::read));
-                    break;
+            String name = parser.getCurrentName();
+            if ("nodes".equals(name)) {
+                nodes = Collections.unmodifiableList(readArray(parser, Node::read));
             }
+            else if ("relationships".equals(name)) {
+                relationships = Collections.unmodifiableList(readArray(parser, Relationship::read));
+            }
+            else readNext(parser);
         }
     }
 }
